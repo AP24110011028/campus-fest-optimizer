@@ -1,6 +1,6 @@
 # CampusFest Optimizer Pro
 
-CampusFest Optimizer Pro is a frontend-based decision support platform for college festival planning under realistic operational constraints. The system integrates dynamic programming, advanced greedy heuristics, predictive scoring, multi-stage scheduling, and explainability features into a single browser-accessible application.
+CampusFest Optimizer Pro is a frontend-based decision support platform for college festival planning under realistic operational constraints. Developed as a collaborative CCC team project, the system integrates dynamic programming, advanced greedy heuristics, predictive scoring, multi-stage scheduling, and explainability features into a single browser-accessible application.
 
 Rather than functioning as a simple algorithm showcase, the project is designed to model a realistic planning environment in which funding, staffing, equipment availability, stage capacity, and event timing must be evaluated together before a final event plan is approved.
 
@@ -30,6 +30,12 @@ The application is intended to answer questions such as:
 - Responsive frontend interface with local persistence and custom event support
 
 Collectively, these capabilities position the application as a practical planning assistant rather than a static academic demo.
+
+## Team Collaboration
+
+This project was developed as a collaborative team effort under the CCC subject. The solution reflects shared contribution across problem analysis, algorithm design, frontend development, testing, presentation planning, and documentation.
+
+The modular structure of the system also supports clear division of responsibilities among team members while preserving a unified optimization workflow. As a result, the project can be presented not only as a technically strong implementation, but also as a well-coordinated team submission with distinct academic and practical value.
 
 ## Optimization Model
 
