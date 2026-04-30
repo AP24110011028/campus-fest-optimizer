@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusFest Optimizer Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Capstone-Level Optimization System</p>
+        <h1>CampusFest Optimizer Pro</h1>
+        <p class="hero-text">
+          A client-side decision platform for planning a college fest under real constraints.
+          It combines knapsack dynamic programming, weighted interval scheduling, greedy
+          heuristics, and multi-stage allocation inside one explainable workflow.
+        </p>
+        <div class="hero-actions">
+          <button id="run-optimizer" class="primary-btn" type="button">Recompute Plan</button>
+          <button id="reset-events" class="ghost-btn" type="button">Reset Sample Scenario</button>
+          <button id="clear-storage" class="ghost-btn" type="button">Clear Saved State</button>
+          <button id="export-report" class="ghost-btn" type="button">Export Report</button>
+          <button id="open-help" class="ghost-btn" type="button">Help Center</button>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <article class="hero-card">
+          <p class="card-label">Optimization Layers</p>
+          <ul class="hero-points">
+            <li>Budget planning with 0/1 knapsack dynamic programming</li>
+            <li>Main-stage value planning with weighted interval scheduling</li>
+            <li>Greedy baselines for budget and single-stage scheduling</li>
+            <li>Greedy multi-stage allocation with overflow detection</li>
+          </ul>
+        </article>
+
+        <article class="hero-card compact-card">
+          <p class="card-label">Model Score</p>
+          <h2>Impact + (Priority x Weight)</h2>
+          <p class="hero-text compact">
+            Priority acts like executive importance. Increase the weight to make flagship events
+            matter more in every optimizer.
+          </p>
+        </article>
+      </div>
+    </header>
+
+    <section id="stats-grid" class="stats-grid" aria-label="Optimization summary"></section>
+
+    <main class="workspace">
+      <aside class="control-stack">
+        <section id="controls-panel" class="panel-card">
+          <p class="section-tag">Scenario Controls</p>
+          <h2>Optimization Model</h2>
+
+          <label class="field">
+            <span>Total budget (INR thousands)</span>
+            <div class="input-row">
+              <input id="budget-slider" type="range" min="40" max="160" step="1" value="100">
+              <input id="budget-input" type="number" min="40" max="160" step="1" value="100">
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Available stages</span>
+            <select id="stages-select">
+              <option value="1">1 stage</option>
+              <option value="2" selected>2 stages</option>
+              <option value="3">3 stages</option>
+              <option value="4">4 stages</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Priority weight</span>
+            <div class="input-row">
+              <input id="priority-slider" type="range" min="0" max="12" step="1" value="7">
+              <input id="priority-input" type="number" min="0" max="12" step="1" value="7">
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Minimum priority to include</span>
+            <select id="min-priority">
+              <option value="1" selected>P1 and above</option>
+              <option value="2">P2 and above</option>
+              <option value="3">P3 and above</option>
+              <option value="4">P4 and above</option>
+              <option value="5">P5 only</option>
+            </select>
+          </label>
+
+          <div class="callout">
+            <strong>Pipeline:</strong> filter proposals, fund the best lineup with DP,
+            compare it with a greedy budget pick, then optimize the main stage and stage lanes.
+          </div>
+
+          <p class="tiny-note">Changes save automatically in your browser using localStorage.</p>
+        </section>
+
+        <section class="panel-card help-card">
+          <p class="section-tag">Need Guidance?</p>
+          <h2>Quick Start Help Desk</h2>
+          <ol class="help-mini-list">
+            <li>Choose a preset or adjust the budget, stages, and priority weight.</li>
+            <li>Filter categories or minimum priority if you want a focused scenario.</li>
+            <li>Compare the DP and greedy results to explain why the algorithms differ.</li>
+            <li>Check stage allocation, recommendations, and export the final report.</li>
+          </ol>
+          <div class="help-action-row">
+            <button id="open-help-inline" class="primary-btn" type="button">Open Full Guide</button>
+            <button class="ghost-btn help-jump-btn" type="button" data-scroll-target="#comparison-section">See Results</button>
+          </div>
+        </section>
+
+        <section id="presets-panel" class="panel-card">
+          <p class="section-tag">Scenario Presets</p>
+          <h2>Quick Demo Modes</h2>
+          <div id="preset-buttons" class="preset-grid"></div>
+          <p id="preset-caption" class="tiny-note"></p>
+        </section>
+
+        <section id="filters-panel" class="panel-card">
+          <p class="section-tag">Filters</p>
+          <h2>Category Lens</h2>
+          <div id="category-filters" class="chip-grid"></div>
+        </section>
+
+        <section id="proposal-panel" class="panel-card">
+          <p class="section-tag">New Proposal</p>
+          <h2>Add Custom Event</h2>
+          <form id="event-form" class="event-form">
+            <label class="field">
+              <span>Event name</span>
+              <input id="event-name" type="text" maxlength="48" placeholder="AI Music Battle" required>
+            </label>
+
+            <label class="field">
+              <span>Category</span>
+              <input id="event-category" list="category-options" placeholder="Music" required>
+              <datalist id="category-options"></datalist>
+            </label>
+
+            <div class="two-column">
+              <label class="field">
+                <span>Cost (INR thousands)</span>
+                <input id="event-cost" type="number" min="5" max="80" step="1" value="15" required>
+              </label>
+
+              <label class="field">
+                <span>Impact</span>
+                <input id="event-impact" type="number" min="10" max="100" step="1" value="40" required>
+              </label>
+            </div>
+
+            <div class="two-column">
+              <label class="field">
+                <span>Priority (1-5)</span>
+                <input id="event-priority" type="number" min="1" max="5" step="1" value="3" required>
+              </label>
+
+              <label class="field">
+                <span>Start</span>
+                <input id="event-start" type="time" value="13:00" required>
+              </label>
+            </div>
+
+            <div class="two-column">
+              <label class="field">
+                <span>End</span>
+                <input id="event-end" type="time" value="14:00" required>
+              </label>
+
+              <label class="field">
+                <span>Quick note</span>
+                <input id="event-note" type="text" maxlength="72" placeholder="Short value proposition">
+              </label>
+            </div>
+
+            <button class="primary-btn wide" type="submit">Add Proposal</button>
+          </form>
+        </section>
+      </aside>
+
+      <section class="results-stack">
+        <section id="dataset-section" class="panel-card">
+          <div class="card-heading">
+            <div>
+              <p class="section-tag">Proposal Pool</p>
+              <h2>Event Dataset</h2>
+            </div>
+            <p class="muted-note">Inactive cards are currently filtered out by category or priority.</p>
+          </div>
+          <div id="events-grid" class="events-grid"></div>
+        </section>
+
+        <section id="comparison-section" class="comparison-grid">
+          <article class="panel-card result-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Dynamic Programming</p>
+                <h2>Budget Optimizer</h2>
+              </div>
+              <p id="budget-dp-summary" class="muted-note"></p>
+            </div>
+            <div id="budget-dp-list" class="selection-list"></div>
+          </article>
+
+          <article class="panel-card result-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Greedy Heuristic</p>
+                <h2>Ratio Budget Pick</h2>
+              </div>
+              <p id="greedy-budget-summary" class="muted-note"></p>
+            </div>
+            <div id="greedy-budget-list" class="selection-list"></div>
+          </article>
+
+          <article class="panel-card result-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Dynamic Programming</p>
+                <h2>Main-Stage WIS</h2>
+              </div>
+              <p id="weighted-summary" class="muted-note"></p>
+            </div>
+            <div id="weighted-list" class="selection-list"></div>
+          </article>
+
+          <article class="panel-card result-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Greedy Scheduling</p>
+                <h2>Earliest Finish</h2>
+              </div>
+              <p id="greedy-schedule-summary" class="muted-note"></p>
+            </div>
+            <div id="greedy-schedule-list" class="selection-list"></div>
+          </article>
+        </section>
+
+        <section id="stage-section" class="analytics-grid">
+          <article class="panel-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Comparison Dashboard</p>
+                <h2>Score and Gap View</h2>
+              </div>
+              <p class="muted-note">A quick way to explain where greedy falls short.</p>
+            </div>
+            <div id="comparison-bars" class="bar-chart"></div>
+            <div id="comparison-insights" class="insight-grid"></div>
+          </article>
+
+          <article class="panel-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Stage Allocation</p>
+                <h2>Funded Events Across Lanes</h2>
+              </div>
+              <p id="stage-plan-summary" class="muted-note"></p>
+            </div>
+            <div class="timeline-header">
+              <span>09:00</span>
+              <span>12:00</span>
+              <span>15:00</span>
+              <span>18:00</span>
+              <span>21:00</span>
+            </div>
+            <div id="stage-plan" class="stage-plan"></div>
+            <div id="overflow-events" class="overflow-wrap"></div>
+          </article>
+        </section>
+
+        <section id="decision-section" class="decision-grid">
+          <article class="panel-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">What-If Explorer</p>
+                <h2>Budget Sensitivity Ladder</h2>
+              </div>
+              <p id="sensitivity-summary" class="muted-note"></p>
+            </div>
+            <div class="legend-row">
+              <span class="legend-item">
+                <span class="legend-swatch dp"></span>
+                Budget DP
+              </span>
+              <span class="legend-item">
+                <span class="legend-swatch greedy"></span>
+                Greedy Budget
+              </span>
+            </div>
+            <div id="sensitivity-chart" class="sensitivity-chart"></div>
+          </article>
+
+          <article class="panel-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Planner Brief</p>
+                <h2>Actionable Recommendations</h2>
+              </div>
+              <p class="muted-note">Generated directly from the current optimization state.</p>
+            </div>
+            <div id="recommendation-grid" class="recommendation-grid"></div>
+          </article>
+        </section>
+
+        <section id="trace-section" class="trace-grid">
+          <article class="panel-card trace-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Explainability</p>
+                <h2>Knapsack DP Matrix</h2>
+              </div>
+              <p id="knapsack-trace-summary" class="muted-note"></p>
+            </div>
+            <div id="knapsack-table" class="table-wrap"></div>
+          </article>
+
+          <article class="panel-card trace-panel">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Explainability</p>
+                <h2>Weighted Interval Trace</h2>
+              </div>
+              <p id="weighted-trace-summary" class="muted-note"></p>
+            </div>
+            <div id="weighted-table" class="table-wrap"></div>
+          </article>
+
+          <article class="panel-card trace-panel trace-panel-wide">
+            <div class="card-heading">
+              <div>
+                <p class="section-tag">Explainability</p>
+                <h2>Greedy Decision Log</h2>
+              </div>
+              <p class="muted-note">Both greedy algorithms expose every accept and skip step.</p>
+            </div>
+            <div id="greedy-steps" class="step-columns"></div>
+          </article>
+        </section>
+
+        <section class="panel-card">
+          <p class="section-tag">Capstone Notes</p>
+          <div class="concept-grid">
+            <div>
+              <h3>Why this is stronger</h3>
+              <p>
+                The project now solves three linked planning layers: funding, single-stage value,
+                and lane allocation. That makes the algorithm choice feel justified instead of decorative.
+              </p>
+            </div>
+            <div>
+              <h3>What to say in viva</h3>
+              <p>
+                Use greedy when the problem has a proven greedy-choice property or when you want a
+                fast baseline. Use dynamic programming when local choices can block the optimal global result.
+              </p>
+            </div>
+            <div>
+              <h3>Complexity snapshot</h3>
+              <p>
+                Knapsack runs in O(nB), weighted interval scheduling runs in O(n log n), and the greedy
+                baselines run in O(n log n) because of sorting.
+              </p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <button id="open-help-fab" class="help-fab" type="button">Need Help?</button>
+
+  <div id="help-overlay" class="help-overlay" hidden aria-hidden="true">
+    <div class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <div class="help-header">
+        <div>
+          <p class="section-tag">Support Guide</p>
+          <h2 id="help-title">How To Use CampusFest Optimizer Pro</h2>
+        </div>
+        <button id="close-help" class="ghost-btn" type="button">Close</button>
+      </div>
+
+      <div class="help-grid">
+        <section class="help-section">
+          <h3>Start here</h3>
+          <div class="help-step-list">
+            <article class="help-step">
+              <span class="help-number">1</span>
+              <div>
+                <strong>Pick a scenario</strong>
+                <p>Use a preset if you want a quick demo, or adjust the budget, stage count, and priority weight yourself.</p>
+              </div>
+            </article>
+            <article class="help-step">
+              <span class="help-number">2</span>
+              <div>
+                <strong>Control what enters the model</strong>
+                <p>Use category filters and minimum priority to decide which proposals should be considered by the algorithms.</p>
+              </div>
+            </article>
+            <article class="help-step">
+              <span class="help-number">3</span>
+              <div>
+                <strong>Read the algorithm comparison</strong>
+                <p>The Budget DP and WIS DP panels are the optimized answers. The greedy panels are fast baselines for comparison.</p>
+              </div>
+            </article>
+            <article class="help-step">
+              <span class="help-number">4</span>
+              <div>
+                <strong>Finish with operations and report</strong>
+                <p>Check stage allocation, the budget ladder, recommendations, then export the report if you want a summary file.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="help-section">
+          <h3>Jump to the next step</h3>
+          <div class="help-jump-grid">
+            <button class="help-jump" type="button" data-scroll-target="#controls-panel">Go to Controls</button>
+            <button class="help-jump" type="button" data-scroll-target="#presets-panel">Go to Presets</button>
+            <button class="help-jump" type="button" data-scroll-target="#filters-panel">Go to Filters</button>
+            <button class="help-jump" type="button" data-scroll-target="#dataset-section">Go to Events</button>
+            <button class="help-jump" type="button" data-scroll-target="#comparison-section">Go to Comparison</button>
+            <button class="help-jump" type="button" data-scroll-target="#stage-section">Go to Stage Plan</button>
+            <button class="help-jump" type="button" data-scroll-target="#decision-section">Go to What-If</button>
+            <button class="help-jump" type="button" data-scroll-target="#trace-section">Go to Traces</button>
+          </div>
+        </section>
+
+        <section class="help-section">
+          <h3>What each result means</h3>
+          <div class="help-definition-list">
+            <article>
+              <strong>Budget Optimizer</strong>
+              <p>The best funded lineup under your budget using dynamic programming.</p>
+            </article>
+            <article>
+              <strong>Ratio Budget Pick</strong>
+              <p>A greedy shortcut that chooses high score-to-cost events first.</p>
+            </article>
+            <article>
+              <strong>Main-Stage WIS</strong>
+              <p>The highest-value non-overlapping single-stage schedule from the funded lineup.</p>
+            </article>
+            <article>
+              <strong>Earliest Finish</strong>
+              <p>A greedy scheduling baseline that favors the event ending soonest.</p>
+            </article>
+            <article>
+              <strong>Stage Allocation</strong>
+              <p>Shows how funded events fit across available stages and whether anything overflows.</p>
+            </article>
+            <article>
+              <strong>Budget Sensitivity Ladder</strong>
+              <p>Shows how the DP and greedy scores change when the budget changes.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="help-section">
+          <h3>If someone has a doubt</h3>
+          <div class="faq-list">
+            <details>
+              <summary>Why are some event cards faded?</summary>
+              <p>They are filtered out by the current category selection or minimum priority. They are not part of the current optimization input.</p>
+            </details>
+            <details>
+              <summary>What should I do first if I am confused?</summary>
+              <p>Start with a preset, then click Recompute Plan, then read the four main result cards from left to right.</p>
+            </details>
+            <details>
+              <summary>Why is DP sometimes better than greedy?</summary>
+              <p>Greedy makes locally good choices fast, but DP explores combinations and can find a better global answer when local choices are misleading.</p>
+            </details>
+            <details>
+              <summary>When should I check the trace tables?</summary>
+              <p>Use them when you want to explain exactly how the optimizer reached its answer during viva or review.</p>
+            </details>
+            <details>
+              <summary>What if I want to test my own idea?</summary>
+              <p>Add a custom event in the left panel, then recompute. The app will automatically include it in future analysis and save it locally.</p>
+            </details>
+            <details>
+              <summary>What if I do not know what to say next in presentation?</summary>
+              <p>Open the recommendations panel and the exported report. Both are designed to give you ready-made talking points.</p>
+            </details>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
