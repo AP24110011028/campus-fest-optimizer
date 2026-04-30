@@ -17,8 +17,9 @@
         <h1>CampusFest Optimizer Pro</h1>
         <p class="hero-text">
           A client-side decision platform for planning a college fest under real constraints.
-          It combines knapsack dynamic programming, weighted interval scheduling, greedy
-          heuristics, and multi-stage allocation inside one explainable workflow.
+          It now combines multi-constraint dynamic programming, predictive scoring,
+          weighted interval scheduling, hybrid greedy refinement, and multi-stage optimization
+          inside one explainable workflow.
         </p>
         <div class="hero-actions">
           <button id="run-optimizer" class="primary-btn" type="button">Recompute Plan</button>
@@ -33,19 +34,19 @@
         <article class="hero-card">
           <p class="card-label">Optimization Layers</p>
           <ul class="hero-points">
-            <li>Budget planning with 0/1 knapsack dynamic programming</li>
-            <li>Main-stage value planning with weighted interval scheduling</li>
-            <li>Greedy baselines for budget and single-stage scheduling</li>
-            <li>Greedy multi-stage allocation with overflow detection</li>
+            <li>Budget, staff, and equipment planning with multi-constraint dynamic programming</li>
+            <li>Predictive event scoring using rule-based demand trend factors</li>
+            <li>Hybrid greedy seeding plus exact DP refinement</li>
+            <li>Flow-based multi-stage scheduling with overflow recovery suggestions</li>
           </ul>
         </article>
 
         <article class="hero-card compact-card">
           <p class="card-label">Model Score</p>
-          <h2>Impact + (Priority x Weight)</h2>
+          <h2>(Impact x Trend) + (Priority x Weight)</h2>
           <p class="hero-text compact">
-            Priority acts like executive importance. Increase the weight to make flagship events
-            matter more in every optimizer.
+            Impact is amplified by simulated demand. Priority still acts like executive importance,
+            so flagship events can rise when both trend and weight support them.
           </p>
         </article>
       </div>
@@ -64,6 +65,22 @@
             <div class="input-row">
               <input id="budget-slider" type="range" min="40" max="160" step="1" value="100">
               <input id="budget-input" type="number" min="40" max="160" step="1" value="100">
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Available staff capacity</span>
+            <div class="input-row">
+              <input id="staff-slider" type="range" min="10" max="50" step="1" value="32">
+              <input id="staff-input" type="number" min="10" max="50" step="1" value="32">
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Equipment capacity</span>
+            <div class="input-row">
+              <input id="equipment-slider" type="range" min="8" max="36" step="1" value="22">
+              <input id="equipment-input" type="number" min="8" max="36" step="1" value="22">
             </div>
           </label>
 
@@ -97,8 +114,9 @@
           </label>
 
           <div class="callout">
-            <strong>Pipeline:</strong> filter proposals, fund the best lineup with DP,
-            compare it with a greedy budget pick, then optimize the main stage and stage lanes.
+            <strong>Pipeline:</strong> filter proposals, seed a solution with advanced greedy,
+            refine it with 3D DP across budget, staff, and equipment, then optimize the
+            selected lineup across all stage lanes.
           </div>
 
           <p class="tiny-note">Changes save automatically in your browser using localStorage.</p>
@@ -108,10 +126,10 @@
           <p class="section-tag">Need Guidance?</p>
           <h2>Quick Start Help Desk</h2>
           <ol class="help-mini-list">
-            <li>Choose a preset or adjust the budget, stages, and priority weight.</li>
+            <li>Choose a preset or adjust budget, staff, equipment, stages, and priority weight.</li>
             <li>Filter categories or minimum priority if you want a focused scenario.</li>
-            <li>Compare the DP and greedy results to explain why the algorithms differ.</li>
-            <li>Check stage allocation, recommendations, and export the final report.</li>
+            <li>Compare hybrid DP, advanced greedy, and multi-stage schedule output.</li>
+            <li>Check overflow suggestions, what-if simulations, and export the final report.</li>
           </ol>
           <div class="help-action-row">
             <button id="open-help-inline" class="primary-btn" type="button">Open Full Guide</button>
@@ -166,6 +184,18 @@
               </label>
 
               <label class="field">
+                <span>Staff required</span>
+                <input id="event-staff" type="number" min="1" max="20" step="1" value="3" required>
+              </label>
+            </div>
+
+            <div class="two-column">
+              <label class="field">
+                <span>Equipment required</span>
+                <input id="event-equipment" type="number" min="1" max="20" step="1" value="2" required>
+              </label>
+
+              <label class="field">
                 <span>Start</span>
                 <input id="event-start" type="time" value="13:00" required>
               </label>
@@ -205,7 +235,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Dynamic Programming</p>
-                <h2>Budget Optimizer</h2>
+                <h2>Hybrid Resource Optimizer</h2>
               </div>
               <p id="budget-dp-summary" class="muted-note"></p>
             </div>
@@ -216,7 +246,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Greedy Heuristic</p>
-                <h2>Ratio Budget Pick</h2>
+                <h2>Advanced Greedy Seed</h2>
               </div>
               <p id="greedy-budget-summary" class="muted-note"></p>
             </div>
@@ -226,8 +256,8 @@
           <article class="panel-card result-panel">
             <div class="card-heading">
               <div>
-                <p class="section-tag">Dynamic Programming</p>
-                <h2>Main-Stage WIS</h2>
+                <p class="section-tag">Multi-Stage Optimization</p>
+                <h2>Flow Schedule</h2>
               </div>
               <p id="weighted-summary" class="muted-note"></p>
             </div>
@@ -238,7 +268,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Greedy Scheduling</p>
-                <h2>Earliest Finish</h2>
+                <h2>Finish-Time Baseline</h2>
               </div>
               <p id="greedy-schedule-summary" class="muted-note"></p>
             </div>
@@ -263,7 +293,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Stage Allocation</p>
-                <h2>Funded Events Across Lanes</h2>
+                <h2>Optimized Events Across Lanes</h2>
               </div>
               <p id="stage-plan-summary" class="muted-note"></p>
             </div>
@@ -299,6 +329,7 @@
               </span>
             </div>
             <div id="sensitivity-chart" class="sensitivity-chart"></div>
+            <div id="what-if-grid" class="what-if-grid"></div>
           </article>
 
           <article class="panel-card">
@@ -318,7 +349,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Explainability</p>
-                <h2>Knapsack DP Matrix</h2>
+                <h2>Multi-Constraint DP Trace</h2>
               </div>
               <p id="knapsack-trace-summary" class="muted-note"></p>
             </div>
@@ -329,7 +360,7 @@
             <div class="card-heading">
               <div>
                 <p class="section-tag">Explainability</p>
-                <h2>Weighted Interval Trace</h2>
+                <h2>Weighted Interval Reference</h2>
               </div>
               <p id="weighted-trace-summary" class="muted-note"></p>
             </div>
@@ -398,7 +429,7 @@
               <span class="help-number">1</span>
               <div>
                 <strong>Pick a scenario</strong>
-                <p>Use a preset if you want a quick demo, or adjust the budget, stage count, and priority weight yourself.</p>
+                <p>Use a preset if you want a quick demo, or adjust budget, staff, equipment, stage count, and priority weight yourself.</p>
               </div>
             </article>
             <article class="help-step">
@@ -412,14 +443,14 @@
               <span class="help-number">3</span>
               <div>
                 <strong>Read the algorithm comparison</strong>
-                <p>The Budget DP and WIS DP panels are the optimized answers. The greedy panels are fast baselines for comparison.</p>
+                <p>The hybrid DP and flow-scheduling panels are the optimized answers. The greedy panels are fast baselines for comparison.</p>
               </div>
             </article>
             <article class="help-step">
               <span class="help-number">4</span>
               <div>
                 <strong>Finish with operations and report</strong>
-                <p>Check stage allocation, the budget ladder, recommendations, then export the report if you want a summary file.</p>
+                <p>Check stage allocation, what-if simulations, recommendations, then export the report if you want a summary file.</p>
               </div>
             </article>
           </div>
@@ -444,27 +475,27 @@
           <div class="help-definition-list">
             <article>
               <strong>Budget Optimizer</strong>
-              <p>The best funded lineup under your budget using dynamic programming.</p>
+              <p>The best funded lineup under budget, staff, and equipment using dynamic programming.</p>
             </article>
             <article>
-              <strong>Ratio Budget Pick</strong>
-              <p>A greedy shortcut that chooses high score-to-cost events first.</p>
+              <strong>Advanced Greedy Seed</strong>
+              <p>A fast heuristic that uses predicted score versus cost, duration, staff, and equipment.</p>
             </article>
             <article>
-              <strong>Main-Stage WIS</strong>
-              <p>The highest-value non-overlapping single-stage schedule from the funded lineup.</p>
+              <strong>Flow Schedule</strong>
+              <p>The highest-value multi-stage schedule from the funded lineup under lane capacity.</p>
             </article>
             <article>
-              <strong>Earliest Finish</strong>
-              <p>A greedy scheduling baseline that favors the event ending soonest.</p>
+              <strong>Finish-Time Baseline</strong>
+              <p>A greedy scheduling baseline that still favors the event ending soonest.</p>
             </article>
             <article>
               <strong>Stage Allocation</strong>
-              <p>Shows how funded events fit across available stages and whether anything overflows.</p>
+              <p>Shows how optimized events fit across stages and how to recover deferred blocks.</p>
             </article>
             <article>
-              <strong>Budget Sensitivity Ladder</strong>
-              <p>Shows how the DP and greedy scores change when the budget changes.</p>
+              <strong>What-If Simulation</strong>
+              <p>Shows how the score changes when budget moves or events are removed or unlocked.</p>
             </article>
           </div>
         </section>
@@ -482,7 +513,7 @@
             </details>
             <details>
               <summary>Why is DP sometimes better than greedy?</summary>
-              <p>Greedy makes locally good choices fast, but DP explores combinations and can find a better global answer when local choices are misleading.</p>
+              <p>Greedy makes locally good choices fast, but DP explores combinations across budget, staff, and equipment, so it can recover better global trade-offs.</p>
             </details>
             <details>
               <summary>When should I check the trace tables?</summary>
@@ -502,6 +533,6 @@
     </div>
   </div>
 
-  <script src="./script.js"></script>
+  <script type="module" src="./script.js"></script>
 </body>
 </html>

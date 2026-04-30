@@ -313,6 +313,8 @@ h3 {
 }
 
 #budget-slider,
+#staff-slider,
+#equipment-slider,
 #priority-slider {
   padding: 0;
 }
@@ -364,7 +366,8 @@ h3 {
 .sensitivity-chart,
 .help-grid,
 .help-step-list,
-.help-definition-list {
+.help-definition-list,
+.what-if-grid {
   display: grid;
   gap: 12px;
 }
@@ -791,6 +794,51 @@ h3 {
   color: var(--muted);
 }
 
+.what-if-grid {
+  margin-top: 18px;
+}
+
+.scenario-stack,
+.scenario-group,
+.overflow-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.scenario-brief,
+.scenario-card,
+.overflow-card,
+.trace-caption {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.scenario-brief p,
+.scenario-card p,
+.overflow-card p,
+.trace-caption {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.scenario-grid,
+.suggestion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.scenario-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scenario-score {
+  font-weight: 700;
+  color: var(--ink) !important;
+}
+
 .help-overlay {
   position: fixed;
   inset: 0;
@@ -1054,6 +1102,7 @@ body.help-open {
 }
 
 .overflow-pill {
+  display: inline-flex;
   padding: 8px 10px;
   border-radius: 999px;
   background: rgba(180, 63, 94, 0.11);
@@ -1212,6 +1261,7 @@ body.help-open {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .scenario-grid,
   .concept-grid,
   .insight-grid {
     grid-template-columns: 1fr;

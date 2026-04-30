@@ -1,145 +1,242 @@
 # CampusFest Optimizer Pro
 
-CampusFest Optimizer Pro is a capstone-style client-side decision system for planning a college festival under real constraints. It stays frontend-only, but the logic is significantly deeper than a typical static project.
+CampusFest Optimizer Pro is a frontend-only intelligent decision support system for college-festival planning. It keeps the simplicity of a browser project, but the optimization layer is now strong enough to behave like a real planning engine instead of a basic algorithm demo.
 
-The app combines:
+## What the upgraded system does
 
-- **0/1 Knapsack Dynamic Programming** for budget allocation
-- **Weighted Interval Scheduling Dynamic Programming** for high-value single-stage planning
-- **Greedy ratio selection** as a fast budget baseline
-- **Greedy earliest-finish scheduling** as a fast scheduling baseline
-- **Greedy multi-stage lane allocation** for placing funded events across limited stages
+The planner now optimizes across three different kinds of decisions:
 
-## Why this is capstone-level
+1. **Funding**
+   It decides which events should be funded under multiple resource limits.
 
-This project is no longer just a basic webpage that displays algorithm output. It behaves like a small optimization platform:
+2. **Scheduling**
+   It decides which funded events should actually occupy the available stage lanes.
 
-- multiple real constraints are modeled together
-- algorithms are compared side by side
-- every choice is explainable through trace tables and decision logs
-- the planner supports custom scenarios and saved local state
-- scenario presets make the demo easier to present live
-- a built-in help desk supports first-time users inside the app
-- the UI presents results as a product, not as a single demo card
+3. **Operational recovery**
+   If a funded event cannot be scheduled, it suggests how to recover it by shifting time, moving stages, or reducing duration.
 
-## Core workflow
+## Core algorithms
 
-The system runs in four layers:
+### 1. Multi-Constraint Dynamic Programming
 
-1. Filter the proposal pool by category and minimum priority.
-2. Use **Knapsack DP** to fund the best set of events under the budget.
-3. Compare that optimal funded lineup with a **greedy ratio-based budget heuristic**.
-4. Run **Weighted Interval Scheduling DP** on the funded lineup to get the best single-stage value plan, compare it to the **earliest-finish greedy schedule**, and finally place funded events across multiple lanes using a greedy stage allocator.
-5. Run a **what-if budget ladder** to show how the DP and greedy gap changes as the budget changes.
-6. Export a planner report for submission or presentation support.
+The old single-budget knapsack has been upgraded into a **three-constraint knapsack**.
 
-## Algorithms used
+Each event now consumes:
 
-### 1. 0/1 Knapsack Dynamic Programming
+- `cost`
+- `staffRequired`
+- `equipmentRequired`
 
-Used for budget optimization.
-
-- Each event has a `cost`
-- Each event has an `impact`
-- Each event has a `priority`
-- The optimization score is:
+The planner maximizes:
 
 ```text
-score = impact + (priority x priorityWeight)
+predictedScore = (impact x trendFactor) + (priority x priorityWeight)
 ```
 
-Goal:
+This DP is implemented as a **3D resource optimizer** over:
 
-- maximize total score
-- do not exceed the given budget
+- budget
+- staff
+- equipment
 
-Time complexity:
+To keep the browser responsive for larger scenarios, the solver uses:
 
-- `O(nB)` where `n` is the number of active events and `B` is the budget limit
+- rolling-array DP to reduce space usage
+- adaptive scaling when the state space becomes too large
 
-### 2. Weighted Interval Scheduling Dynamic Programming
+### 2. Advanced Greedy Seed
 
-Used for the main-stage value plan.
+The old greedy ratio:
 
-- Events have start and end times
-- Overlapping events cannot coexist on one main stage
-- Each event has a value score
+```text
+score / cost
+```
 
-Goal:
+was replaced by:
 
-- maximize total schedule score on a single stage
+```text
+predictedScore / (cost x duration x resourceUsage)
+```
 
-Time complexity:
+where:
+
+- `duration` comes from the event timeline
+- `resourceUsage = staffRequired + equipmentRequired`
+
+This greedy step is not the final answer. It is used as a **fast seed solution**, and then DP refines that seed into the final optimized lineup.
+
+### 3. Predictive Scoring
+
+The original score model was:
+
+```text
+impact + (priority x weight)
+```
+
+The upgraded model uses:
+
+```text
+predictedScore = (impact x trendFactor) + (priority x weight)
+```
+
+`trendFactor` is rule-based and depends on:
+
+- category popularity
+- time-of-day demand
+- priority level
+- duration penalty for long low-agility blocks
+
+This makes the planner more realistic because it no longer assumes every impact value is static.
+
+### 4. Weighted Interval Scheduling Reference
+
+The system still keeps **single-stage weighted interval scheduling** as an explainability layer.
+
+This is useful because:
+
+- it is easy to explain in viva
+- it shows how value-aware scheduling works on one stage
+- it acts as a clean DP reference even though the main planner now schedules across multiple stages
+
+### 5. Multi-Stage Scheduling Optimization
+
+The stage scheduler is now upgraded from greedy placement to a **flow-based multi-stage optimizer**.
+
+It:
+
+- chooses the highest-value set of funded events across all available stages
+- respects overlap limits automatically
+- reduces idle gaps as a secondary objective
+
+This is stronger than simple stage placement because it optimizes the schedule globally, not one event at a time.
+
+### 6. What-If Simulation Engine
+
+The app now simulates:
+
+- budget changes
+- removing important events
+- unlocking additional events by expanding resources
+
+The output explains:
+
+- score change
+- next best configuration
+- which event is the strongest upgrade lever
+
+## Why DP beats greedy here
+
+Greedy is fast, but it makes decisions using only local information.
+
+That is dangerous when:
+
+- one expensive event blocks two medium-value events
+- a low-resource event unlocks a stronger full combination
+- staff or equipment become the true bottleneck instead of money
+
+Dynamic programming is better in these cases because it explores combinations across the whole resource space.
+
+In this project:
+
+- **advanced greedy** gives a quick seed
+- **DP** gives the best feasible lineup
+- **multi-stage optimization** turns the funded lineup into the strongest schedule
+
+## Performance strategy
+
+The upgraded system is designed to remain usable for larger datasets:
+
+- rolling DP arrays reduce memory pressure
+- adaptive scaling prevents state explosion
+- score computation is memoized
+- scenario analysis is cached during what-if runs
+- the browser only recomputes the scenarios that actually change
+
+## Time complexity summary
+
+### Multi-constraint funding DP
+
+- Exact mode: `O(n x B x S x E)`
+- with:
+  - `n` = number of active events
+  - `B` = budget limit
+  - `S` = staff limit
+  - `E` = equipment limit
+
+When the exact grid becomes too large, the solver uses adaptive scaling to keep runtime practical.
+
+### Advanced greedy seed
+
+- sorting: `O(n log n)`
+- selection scan: `O(n)`
+
+### Weighted interval scheduling
 
 - sorting and predecessor search: `O(n log n)`
 - DP scan: `O(n)`
-- overall: `O(n log n)`
 
-### 3. Greedy Ratio Budget Heuristic
+### Multi-stage flow schedule
 
-Used as a fast baseline.
+- built on a small time-expanded network
+- practical runtime stays efficient for 100+ events because the number of stage lanes is small and time points are limited
 
-- Sort events by `score / cost`
-- Keep picking while budget remains
+### What-if engine
 
-Why it matters:
+- reuses memoized scenario evaluation
+- avoids recomputing identical states
 
-- it is fast
-- it is intuitive
-- it is not always optimal
+## Architecture
 
-### 4. Greedy Earliest-Finish Scheduling
+The code is now modularized into:
 
-Used as a fast baseline for single-stage planning.
+- `models/`
+  - configuration
+  - sample event data
+  - normalization rules
 
-- Sort funded events by finish time
-- Always keep the next event that does not overlap
+- `utils/`
+  - formatting
+  - time helpers
+  - shared helpers
+  - local storage state
 
-Why it matters:
+- `algorithms/`
+  - predictive scoring
+  - multi-constraint budget optimization
+  - greedy baselines
+  - weighted interval scheduling
+  - multi-stage scheduling
+  - what-if simulation
+  - top-level analysis composition
 
-- great when the goal is maximizing the **count** of compatible events
-- not always best when the real goal is maximizing **value**
+- `ui/`
+  - rendering templates
+  - event wiring
+  - report export
+  - help interactions
 
-### 5. Greedy Multi-Stage Allocation
+## Main features
 
-Used to place funded events across a fixed number of stages.
-
-- Events are processed by start time
-- Each event is placed into the best currently available stage lane
-- If no stage is free, the event becomes overflow
-
-This helps simulate real operational planning even after budget selection is complete.
-
-## Features
-
-- polished responsive interface
-- category filters
-- adjustable budget, stage count, and priority weight
-- minimum-priority filtering
-- custom event creation
+- multi-constraint budget optimization
+- advanced greedy seed plus DP refinement
+- predictive event scoring with trend factor
+- multi-stage schedule optimization
+- weighted interval reference trace
+- greedy decision log
+- overflow recovery suggestions
+- budget sensitivity ladder
+- remove-event stress simulation
+- add-event unlock simulation
+- recommendation cards
 - localStorage persistence
-- scenario presets for different demo modes
-- built-in help center with step-by-step usage guidance
-- side-by-side DP and greedy comparisons
-- score comparison chart
-- what-if budget sensitivity ladder
-- generated planner recommendations
-- multi-stage lane visualization
-- knapsack matrix view
-- weighted interval scheduling trace table
-- greedy decision logs
-- markdown report export
-
-## Files
-
-- [index.html](/Users/appidipoojitha/Desktop/ccc/index.html)
-- [styles.css](/Users/appidipoojitha/Desktop/ccc/styles.css)
-- [script.js](/Users/appidipoojitha/Desktop/ccc/script.js)
-- [README.md](/Users/appidipoojitha/Desktop/ccc/README.md)
+- custom event creation
+- preset-driven demo modes
+- built-in help center
+- exportable markdown report
 
 ## How to run
 
-You can open [index.html](/Users/appidipoojitha/Desktop/ccc/index.html) directly in the browser, but the easiest option is a local server:
+Start a local server in the project folder:
 
 ```bash
 python3 -m http.server 8000
@@ -147,26 +244,23 @@ python3 -m http.server 8000
 
 Then open:
 
-- `http://127.0.0.1:8000/index.html`
+- [http://127.0.0.1:8000/index.html](http://127.0.0.1:8000/index.html)
 
-## Suggested project description
+## Project structure
 
-> CampusFest Optimizer Pro is a frontend-only optimization platform for festival planning. It uses 0/1 Knapsack Dynamic Programming to choose the highest-value set of events within a fixed budget, Weighted Interval Scheduling Dynamic Programming to maximize single-stage schedule value, greedy heuristics for fast baseline comparisons, and a greedy multi-stage allocator to place funded events across limited stages. The project demonstrates how different algorithmic paradigms solve different layers of a real planning problem.
-
-## Good viva explanation
-
-You can explain the project in one short flow:
-
-1. First, I filter the available proposals.
-2. Then I use knapsack DP to decide which events should be funded under budget.
-3. After funding, I compare greedy and DP again for time scheduling.
-4. Weighted interval scheduling gives the best value main-stage plan.
-5. Finally, I place funded events across limited stage lanes and detect overflow.
-
-## Future upgrades
-
-- add export to PDF or CSV
-- add multiple resource constraints such as staff and equipment
-- add side-by-side preset comparison history
-- add chart history across different budgets
-- add Monte Carlo style demand simulation for uncertain attendance
+- [index.html](/Users/appidipoojitha/Desktop/ccc/index.html)
+- [styles.css](/Users/appidipoojitha/Desktop/ccc/styles.css)
+- [script.js](/Users/appidipoojitha/Desktop/ccc/script.js)
+- [models/config.js](/Users/appidipoojitha/Desktop/ccc/models/config.js)
+- [models/events.js](/Users/appidipoojitha/Desktop/ccc/models/events.js)
+- [utils/helpers.js](/Users/appidipoojitha/Desktop/ccc/utils/helpers.js)
+- [utils/time.js](/Users/appidipoojitha/Desktop/ccc/utils/time.js)
+- [utils/format.js](/Users/appidipoojitha/Desktop/ccc/utils/format.js)
+- [utils/storage.js](/Users/appidipoojitha/Desktop/ccc/utils/storage.js)
+- [algorithms/scoring.js](/Users/appidipoojitha/Desktop/ccc/algorithms/scoring.js)
+- [algorithms/budget.js](/Users/appidipoojitha/Desktop/ccc/algorithms/budget.js)
+- [algorithms/scheduling.js](/Users/appidipoojitha/Desktop/ccc/algorithms/scheduling.js)
+- [algorithms/simulation.js](/Users/appidipoojitha/Desktop/ccc/algorithms/simulation.js)
+- [algorithms/analysis.js](/Users/appidipoojitha/Desktop/ccc/algorithms/analysis.js)
+- [ui/templates.js](/Users/appidipoojitha/Desktop/ccc/ui/templates.js)
+- [ui/app.js](/Users/appidipoojitha/Desktop/ccc/ui/app.js)
